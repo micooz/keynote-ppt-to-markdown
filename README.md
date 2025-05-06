@@ -56,7 +56,7 @@ npm run build
 
 ```bash
 npm run dev
-npx ppt2md <演示文稿路径> [输出目录]
+npx keynote-ppt-to-markdown <演示文稿路径> [输出目录]
 ```
 
 ## 许可证
