@@ -1,0 +1,53 @@
+{
+  "name": "keynote-ppt-to-markdown",
+  "version": "1.0.0",
+  "description": "将 Keynote/PPT 演示文稿转换为 Markdown 格式，包含演讲者注释和幻灯片图片",
+  "main": "dist/index.js",
+  "bin": {
+    "ppt2md": "bin/cli.js"
+  },
+  "files": [
+    "dist",
+    "bin"
+  ],
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/micooz/keynote-ppt-to-markdown.git"
+  },
+  "scripts": {
+    "build": "npm run clean && tsc && cp src/*.applescript dist/",
+    "clean": "rm -rf dist",
+    "dev": "tsc --watch",
+    "test": "echo \"Error: no test specified\" && exit 1",
+    "prepublishOnly": "npm run build"
+  },
+  "keywords": [
+    "keynote",
+    "powerpoint",
+    "ppt",
+    "markdown",
+    "converter",
+    "presentation",
+    "slides"
+  ],
+  "author": "micooz",
+  "license": "MIT",
+  "bugs": {
+    "url": "https://github.com/micooz/keynote-ppt-to-markdown/issues"
+  },
+  "homepage": "https://github.com/micooz/keynote-ppt-to-markdown#readme",
+  "engines": {
+    "node": ">=18.0.0"
+  },
+  "dependencies": {
+    "adm-zip": "^0.5.16",
+    "pptx2json": "^0.0.10",
+    "xml2js": "^0.6.2"
+  },
+  "devDependencies": {
+    "@types/adm-zip": "^0.5.7",
+    "@types/node": "^22.15.12",
+    "@types/xml2js": "^0.4.14",
+    "typescript": "^5.8.3"
+  }
+}
