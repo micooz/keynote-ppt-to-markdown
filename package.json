@@ -1,6 +1,6 @@
 {
   "name": "keynote-ppt-to-markdown",
-  "version": "1.0.1",
+  "version": "1.0.2",
   "description": "将 Keynote/PPT 演示文稿转换为 Markdown 格式，包含演讲者注释和幻灯片图片",
   "main": "dist/index.js",
   "bin": {
