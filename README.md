@@ -1,5 +1,7 @@
 # keynote-ppt-to-markdown
 
+[中文](README.md) | [English](README_en.md)
+
 一个将 Keynote/PPT 演示文稿转换为 Markdown 格式的命令行工具，支持导出演讲者注释和幻灯片图片。
 
 ## 功能特点
@@ -11,8 +13,17 @@
 
 ## 使用方法
 
+直接运行:
+
 ```bash
 npx keynote-ppt-to-markdown <演示文稿路径> [输出目录]
+```
+
+或者，先安装再运行:
+
+```bash
+npm install -g keynote-ppt-to-markdown
+ppt2md <演示文稿路径> [输出目录]
 ```
 
 ### 参数说明
@@ -34,9 +45,8 @@ npx keynote-ppt-to-markdown presentation.pptx ./output
 
 转换后的输出包含：
 
-- `presentation.md`: 包含所有幻灯片内容的 Markdown 文件
+- `presentation.md`: 包含幻灯片每页图片和演讲者注释的 Markdown 文件
 - `images/`: 包含所有幻灯片图片的目录
-- 演讲者注释会以 Markdown 注释的形式保留在文档中
 
 ## 开发
 
