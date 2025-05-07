@@ -4,6 +4,7 @@ import { exec } from 'child_process';
 import util from 'util';
 import path from 'path';
 import AdmZip from 'adm-zip'; // For direct PPTX media extraction
+import { parseXml } from './utils';
 
 const execPromise = util.promisify(exec);
 
@@ -171,41 +172,129 @@ async function extractMediaFromPptxDirectly(
     }
 
     const zip = new AdmZip(pptxFilePath);
-    const zipEntries = zip.getEntries();
-    const mediaEntries = zipEntries.filter(
-      (entry) =>
-        entry.entryName.startsWith('ppt/media/') &&
-        !entry.isDirectory &&
-        /\.(png|jpg|jpeg|gif|svg|mp4|mov|avi|wmv|mp3|wav)$/i.test(
-          entry.entryName
-        )
+
+    // 1. 首先获取幻灯片列表
+    const presentationXmlEntry = zip.getEntry('ppt/presentation.xml');
+    if (!presentationXmlEntry) {
+      throw new Error('无法在 PPTX 文件中找到 ppt/presentation.xml');
+    }
+    const presentationXmlContent = zip.readAsText(presentationXmlEntry);
+    const presentationDoc = await parseXml(presentationXmlContent);
+
+    const sldIdLstNode =
+      presentationDoc?.['p:presentation']?.['p:sldIdLst']?.[0]?.['p:sldId'];
+    if (!sldIdLstNode || !Array.isArray(sldIdLstNode)) {
+      throw new Error('无法解析幻灯片列表 (p:sldIdLst) 从 presentation.xml');
+    }
+
+    // 2. 获取幻灯片关系映射
+    const presentationRelsEntry = zip.getEntry(
+      'ppt/_rels/presentation.xml.rels'
     );
+    if (!presentationRelsEntry) {
+      throw new Error('无法在 PPTX 文件中找到 ppt/_rels/presentation.xml.rels');
+    }
+    const presentationRelsContent = zip.readAsText(presentationRelsEntry);
+    const presentationRelsDoc = await parseXml(presentationRelsContent);
 
-    // Sort media entries to try and maintain some order, though it's not guaranteed slide order
-    mediaEntries.sort((a, b) => a.entryName.localeCompare(b.entryName));
+    const slideRelsMap: { [rId: string]: string } = {};
+    if (
+      presentationRelsDoc.Relationships &&
+      presentationRelsDoc.Relationships.Relationship
+    ) {
+      for (const rel of presentationRelsDoc.Relationships.Relationship) {
+        const relType = rel.Type?.[0];
+        const relId = rel.Id?.[0];
+        const relTarget = rel.Target?.[0];
 
-    let imageCounter = 0;
-    for (let i = 0; i < mediaEntries.length; i++) {
-      const entry = mediaEntries[i];
-      const fileExtension = path.extname(entry.entryName);
-      // We only save common image types for direct display in Markdown for now
-      if (/\.(png|jpg|jpeg|gif)$/i.test(fileExtension)) {
-        imageCounter++;
-        const newFilename = `${String(imageCounter).padStart(
-          3,
-          '0'
-        )}${fileExtension}`;
-        const outputPath = path.join(finalImageOutputPath, newFilename);
-        fs.writeFileSync(outputPath, entry.getData());
+        if (
+          relType ===
+            'http://schemas.openxmlformats.org/officeDocument/2006/relationships/slide' &&
+          relId &&
+          relTarget
+        ) {
+          slideRelsMap[relId] = relTarget;
+        }
       }
     }
 
-    if (imageCounter > 0) {
+    // 3. 遍历每个幻灯片并提取图片
+    for (let i = 0; i < sldIdLstNode.length; i++) {
+      const sldIdEntry = sldIdLstNode[i];
+      const slideRidArray = sldIdEntry['r:id'];
+
+      if (
+        !slideRidArray ||
+        !Array.isArray(slideRidArray) ||
+        slideRidArray.length === 0
+      ) {
+        console.warn(
+          `警告：幻灯片 ${i + 1} 的 sldIdEntry 缺少有效的 r:id 数组`
+        );
+        continue;
+      }
+
+      const actualRidString = slideRidArray[0];
+      const slideTarget = slideRelsMap[actualRidString];
+
+      if (!slideTarget) {
+        console.warn(
+          `警告：未找到 rId 为 ${actualRidString} (幻灯片 ${
+            i + 1
+          }) 的幻灯片目标`
+        );
+        continue;
+      }
+
+      // 4. 获取幻灯片关系文件
+      const slideFileName = path.basename(slideTarget);
+      const slideRelsPath = `ppt/slides/_rels/${slideFileName}.rels`;
+      const slideSpecificRelsEntry = zip.getEntry(slideRelsPath);
+
+      if (slideSpecificRelsEntry) {
+        const slideSpecificRelsContent = zip.readAsText(slideSpecificRelsEntry);
+        const slideSpecificRelsDoc = await parseXml(slideSpecificRelsContent);
+
+        // 5. 查找幻灯片图片关系
+        if (
+          slideSpecificRelsDoc.Relationships &&
+          slideSpecificRelsDoc.Relationships.Relationship
+        ) {
+          for (const rel of slideSpecificRelsDoc.Relationships.Relationship) {
+            const relType = rel.Type?.[0];
+            const relTarget = rel.Target?.[0];
+
+            if (
+              relType ===
+                'http://schemas.openxmlformats.org/officeDocument/2006/relationships/image' &&
+              relTarget
+            ) {
+              // 6. 提取图片
+              const imagePath = `ppt/media/${path.basename(relTarget)}`;
+              const imageEntry = zip.getEntry(imagePath);
+
+              if (imageEntry) {
+                const fileExtension = path.extname(imagePath);
+                const newFilename = `${String(i + 1).padStart(
+                  3,
+                  '0'
+                )}${fileExtension}`;
+                const outputPath = path.join(finalImageOutputPath, newFilename);
+                fs.writeFileSync(outputPath, imageEntry.getData());
+              }
+            }
+          }
+        }
+      }
+    }
+
+    const extractedImages = fs.readdirSync(finalImageOutputPath);
+    if (extractedImages.length > 0) {
       console.log(
-        `媒体文件已成功提取并保存到 ${finalImageOutputPath}，共提取 ${imageCounter} 个图片文件。`
+        `媒体文件已成功提取并保存到 ${finalImageOutputPath}，共提取 ${extractedImages.length} 个图片文件。`
       );
     } else {
-      console.log(`在 PPTX 的 ppt/media/ 目录下未找到可直接提取的图片文件。`);
+      console.log(`在 PPTX 中未找到可提取的幻灯片图片。`);
     }
   } catch (error) {
     console.error('从 PPTX 直接提取媒体文件过程中发生错误:', error);
@@ -361,8 +450,20 @@ export async function runCli() {
       console.log(`检测到 PPTX 文件。`);
       pptxFilePathForNotes = inputFilePathAbs;
 
-      console.log(`正在从 PPTX 直接提取媒体文件...`);
-      await extractMediaFromPptxDirectly(inputFilePathAbs, outputDir);
+      if (process.platform === 'darwin') {
+        console.log(
+          `检测到 macOS 系统，将通过 AppleScript 从 PPTX 导出幻灯片整页图片...`
+        );
+        await exportSlidesAsImagesViaAppleScript(inputFilePathAbs, outputDir);
+      } else {
+        console.log(
+          `检测到非 macOS 系统，将尝试从 PPTX 直接提取内嵌媒体文件...`
+        );
+        console.warn(
+          `警告：此方法提取的是 PPTX 文件中内嵌的图片，可能并非完整的幻灯片图片。为了获得最佳的幻灯片图片导出效果 (整页导出)，请在 macOS 上运行此脚本。`
+        );
+        await extractMediaFromPptxDirectly(inputFilePathAbs, outputDir);
+      }
     }
 
     console.log(`正在生成 Markdown 文件 (从 ${pptxFilePathForNotes})...`);

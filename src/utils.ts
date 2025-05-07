@@ -4,7 +4,7 @@ import * as xml2js from 'xml2js';
 import * as path from 'path';
 
 // 辅助函数：解析 XML 字符串
-async function parseXml(xmlString: string): Promise<any> {
+export async function parseXml(xmlString: string): Promise<any> {
   const parser = new xml2js.Parser({
     explicitArray: true, // 总是将节点值放入数组
     mergeAttrs: true, // 将属性合并到其元素上
