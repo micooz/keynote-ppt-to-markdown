@@ -13,13 +13,13 @@ Execute the CLI to convert:
 
 ```bash
 # Convert Keynote file (macOS only)
-npx keynote-ppt-to-markdown presentation.key [output]
+node src/index.js <presentation.key> [output]
 
 # Convert PowerPoint file
-npx keynote-ppt-to-markdown presentation.pptx [output]
+node src/index.js <presentation.pptx> [output]
 
-# Or use the built dist directly
-node dist/index.js <file> [output]
+# Or use npx
+npx keynote-ppt-to-markdown <file> [output]
 ```
 
 ## Output Structure
@@ -41,7 +41,7 @@ output/
 
 ## Source Files
 
-- `src/index.ts` - Main CLI entry
-- `src/utils.ts` - PPTX parsing utilities
+- `src/index.js` - Main CLI entry (compiled from TypeScript)
+- `src/utils.js` - PPTX parsing utilities
 - `src/export_slides_to_images.applescript` - Keynote slide export
 - `src/convert_keynote_to_pptx.applescript` - Keynote to PPTX conversion
