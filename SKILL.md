@@ -1,32 +1,28 @@
 ---
 name: keynote-ppt-to-markdown
-description: "Convert Keynote/PPT presentations to Markdown with embedded images and speaker notes. Pure Python implementation."
+description: "Convert Keynote/PPT presentations to Markdown with embedded images and speaker notes. Uses AppleScript for .key files on macOS."
 ---
 
 # Keynote/PPT to Markdown Skill
 
-Convert presentations to structured Markdown with slide images and speaker notes.
+Convert presentations to Markdown with slide images and speaker notes.
 
-## Usage
+## Agent Usage
 
-```bash
-python3 scripts/convert.py <presentation.pptx> [-o output-directory]
-```
-
-### Examples
+Execute the CLI to convert:
 
 ```bash
-# Convert PPTX file
-python3 scripts/convert.py presentation.pptx
+# Convert Keynote file (macOS only)
+npx keynote-ppt-to-markdown presentation.key [output]
 
-# Convert to specific output directory
-python3 scripts/convert.py slides.pptx -o ./output
+# Convert PowerPoint file
+npx keynote-ppt-to-markdown presentation.pptx [output]
 
-# Specify output
-python3 scripts/convert.py slides.pptx --output /path/to/output
+# Or use the built dist directly
+node dist/index.js <file> [output]
 ```
 
-## Output
+## Output Structure
 
 ```
 output/
@@ -39,6 +35,13 @@ output/
 
 ## Notes
 
-- **PowerPoint (.pptx)**: Works on any platform (pure Python)
-- **Keynote (.key)**: Requires macOS with Keynote installed (use Keynote to export as PPTX first)
-- Dependencies: Python 3.6+
+- **Keynote (.key)**: Requires macOS with Keynote installed (uses AppleScript)
+- **PowerPoint (.pptx)**: Works on any platform
+- Dependencies: adm-zip, pptx2json, xml2js
+
+## Source Files
+
+- `src/index.ts` - Main CLI entry
+- `src/utils.ts` - PPTX parsing utilities
+- `src/export_slides_to_images.applescript` - Keynote slide export
+- `src/convert_keynote_to_pptx.applescript` - Keynote to PPTX conversion
