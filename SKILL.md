@@ -1,18 +1,29 @@
 ---
 name: keynote-ppt-to-markdown
-description: "Convert Keynote/PPT to Markdown with images and speaker notes. Agent skill with built-in scripts."
+description: "Convert Keynote/PPT presentations to Markdown with embedded images and speaker notes. Pure Python implementation."
 ---
 
 # Keynote/PPT to Markdown Skill
 
-Convert presentations to Markdown with embedded images and speaker notes.
+Convert presentations to structured Markdown with slide images and speaker notes.
 
-## Agent Usage
-
-Execute the conversion script:
+## Usage
 
 ```bash
-./scripts/convert.sh <presentation.key or .pptx> [output-directory]
+python3 scripts/convert.py <presentation.pptx> [-o output-directory]
+```
+
+### Examples
+
+```bash
+# Convert PPTX file
+python3 scripts/convert.py presentation.pptx
+
+# Convert to specific output directory
+python3 scripts/convert.py slides.pptx -o ./output
+
+# Specify output
+python3 scripts/convert.py slides.pptx --output /path/to/output
 ```
 
 ## Output
@@ -21,13 +32,13 @@ Execute the conversion script:
 output/
 ├── presentation.md   # Markdown with images and notes
 └── images/
-    ├── slide-001.png
-    ├── slide-002.png
+    ├── 001.png
+    ├── 002.png
     └── ...
 ```
 
-## Requirements
+## Notes
 
-- Node.js >= 18
-- macOS for Keynote (.key) files
-- PowerPoint (.pptx) works on any platform
+- **PowerPoint (.pptx)**: Works on any platform (pure Python)
+- **Keynote (.key)**: Requires macOS with Keynote installed (use Keynote to export as PPTX first)
+- Dependencies: Python 3.6+
